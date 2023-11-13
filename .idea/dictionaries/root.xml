@@ -1,19 +1,24 @@
 <component name="ProjectDictionaryState">
-  <dictionary name="ubuntu">
+  <dictionary name="root">
     <words>
       <w>bmpfile</w>
       <w>buffersize</w>
       <w>bytesperline</w>
       <w>bytesused</w>
       <w>clipcount</w>
+      <w>colorspace</w>
       <w>comprehender</w>
+      <w>dataformat</w>
       <w>dmabuf</w>
       <w>dqbuf</w>
       <w>hres</w>
+      <w>mergen</w>
       <w>mjpg</w>
       <w>mplane</w>
       <w>pixelformat</w>
       <w>priv</w>
+      <w>prot</w>
+      <w>qbuf</w>
       <w>querybuf</w>
       <w>querycap</w>
       <w>rdwr</w>
@@ -24,12 +29,16 @@
       <w>sizeimage</w>
       <w>streamoff</w>
       <w>streamon</w>
+      <w>timecode</w>
+      <w>uint</w>
       <w>umakefile</w>
       <w>userbits</w>
       <w>userptr</w>
       <w>verkuil</w>
       <w>vidioc</w>
       <w>vres</w>
+      <w>webcamd</w>
+      <w>xfer</w>
       <w>ycbcr</w>
       <w>yuyv</w>
     </words>

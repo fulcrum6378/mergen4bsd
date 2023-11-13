@@ -378,11 +378,11 @@ void Segmentation::Process() {
                         prev_seg->m[0] - seg->m[0], prev_seg->m[1] - seg->m[1],
                         prev_seg->m[2] - seg->m[2],
                 };
-                /*LOGI("%u->%d : %d, %d, %d, %d, %d, %d, %d", sid, diff[sid][0], diff[sid][1],
+                /*print("%u->%d : %d, %d, %d, %d, %d, %d, %d", sid, diff[sid][0], diff[sid][1],
                      diff[sid][2], diff[sid][3], diff[sid][4],
                      diff[sid][5], diff[sid][6], diff[sid][7]);*/
             }/* else
-                LOGI("Segment %u was lost", sid);*/
+                print("Segment %u was lost", sid);*/
         }
         // index segments of the current frame
         _yi[seg->m[0]].insert(sid);
