@@ -6,6 +6,9 @@ public:
     explicit Speaker(int *exit);
 
     ~Speaker();
+
+private:
+    int dev;
 };
 
 

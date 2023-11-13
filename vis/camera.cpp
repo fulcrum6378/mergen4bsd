@@ -1,8 +1,9 @@
 #include <cstring>
 #include <fcntl.h> // O_RDWR (oflag)
+#include <iostream> // perror
 #include <sys/ioctl.h>
 #include <sys/mman.h> // PROT_READ, PROT_WRITE, MAP_SHARED
-#include <unistd.h>
+#include <unistd.h> // close
 
 #include "../global.hpp"
 #include "camera.hpp"
