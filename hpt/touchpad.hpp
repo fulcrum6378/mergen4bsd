@@ -6,6 +6,9 @@ public:
     explicit Touchpad(int *exit);
 
     ~Touchpad();
+
+private:
+    int dev;
 };
 
 #endif //HPT_TOUCHPAD_H
