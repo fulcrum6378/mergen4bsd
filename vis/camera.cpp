@@ -11,14 +11,13 @@
 using namespace std;
 
 Camera::Camera(int *exit) {
-    dev = open("/dev/video0", O_RDWR);
-    if (dev < 0) {
+    if ((dev = open("/dev/video0", O_RDWR)) == -1) {
         perror("Failed to open device");
         *exit = 1;
         return;
     }
     v4l2_capability capability{};
-    if (ioctl(dev, VIDIOC_QUERYCAP, &capability) < 0) {
+    if (ioctl(dev, VIDIOC_QUERYCAP, &capability) == -1) {
         perror("This device cannot capture frames");
         *exit = 2;
         return;
@@ -56,7 +55,7 @@ Camera::Camera(int *exit) {
     buffer_info.index = 0u;
     ioctl(dev, VIDIOC_STREAMON, &buffer_info.type);
 
-    // prepare for analysis
+    // prepare for analysis and start recording
     segmentation = new Segmentation(&buf);
     recFuture = recPromise.get_future();
     record = std::thread(&Camera::Record, this);

@@ -8,8 +8,7 @@
 #include "speaker.hpp"
 
 Speaker::Speaker(int *exit) {
-    dev = open("/dev/dsp0.0", O_RDWR);
-    if (dev < 0) {
+    if ((dev = open("/dev/dsp0.0", O_RDWR)) == -1) {
         perror("Failed to open device");
         *exit = 1;
         return;

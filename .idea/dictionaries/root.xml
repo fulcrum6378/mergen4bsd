@@ -22,6 +22,7 @@
       <w>qbuf</w>
       <w>querybuf</w>
       <w>querycap</w>
+      <w>rdonly</w>
       <w>rdwr</w>
       <w>reqbufs</w>
       <w>requestbuffers</w>
