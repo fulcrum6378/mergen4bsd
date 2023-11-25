@@ -1,9 +1,8 @@
-#include <fcntl.h> // open, O_RDWR
-#include <iostream> // std::cin
-#include <unistd.h> // close
+#include <iostream>
 
 #include "global.hpp"
 #include "aud/microphone.hpp"
+#include "aud/sound_card.hpp"
 #include "aud/speaker.hpp"
 #include "hpt/touchpad.hpp"
 #include "vis/camera.hpp"
@@ -11,19 +10,17 @@
 int main() {
     int exit = 0;
 
-    // open the required devices
-    int dev_aud = open("/dev/dsp0.0", O_RDWR);
-    if (exit != 0) return 1;
-
     // construct the low-level components (sensors/controls)
-    auto *aud_in = new Microphone(&exit, &dev_aud);
+    auto *aud = new SoundCard(&exit);
     if (exit != 0) return 10 + exit;
-    auto *aud_out = new Speaker(&exit, &dev_aud);
+    auto *aud_in = new Microphone(&exit, aud);
     if (exit != 0) return 20 + exit;
-    auto *hpt = new Touchpad(&exit);
+    auto *aud_out = new Speaker(&exit, aud);
     if (exit != 0) return 30 + exit;
-    auto vis = new Camera(&exit);
+    auto *hpt = new Touchpad(&exit);
     if (exit != 0) return 40 + exit;
+    auto vis = new Camera(&exit);
+    if (exit != 0) return 50 + exit;
 
     // listen for a stop signal
     print("");
@@ -33,11 +30,9 @@ int main() {
     // destruct the low-level components
     delete aud_in;
     delete aud_out;
+    delete aud;
     delete hpt;
     delete vis;
-
-    // close the required devices
-    close(dev_aud);
 
     return 0;
 }

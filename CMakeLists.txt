@@ -10,6 +10,8 @@ add_executable(Mergen
 
         aud/microphone.cpp
         aud/microphone.hpp
+        aud/sound_card.cpp
+        aud/sound_card.hpp
         aud/speaker.cpp
         aud/speaker.hpp
 
