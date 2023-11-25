@@ -11,7 +11,7 @@
 
 class Microphone {
 public:
-    explicit Microphone(int *exit);
+    Microphone(int *exit, int *aud);
 
     ~Microphone();
 
@@ -19,7 +19,7 @@ private:
     void Record();
 
 
-    int dev;
+    int *aud_;
 
     std::thread record;
     std::promise<void> recPromise;

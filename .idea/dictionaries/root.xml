@@ -12,6 +12,7 @@
       <w>dmabuf</w>
       <w>dqbuf</w>
       <w>hres</w>
+      <w>lpthread</w>
       <w>mergen</w>
       <w>mjpg</w>
       <w>mplane</w>

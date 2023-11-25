@@ -8,18 +8,18 @@
 #include "touchpad.hpp"
 
 Touchpad::Touchpad(int */*exit*/) {
-    /*dev = open("/dev/psm0", O_RDWR);
-    if (dev < 0) {
+    /*aud_ = open("/dev/psm0", O_RDWR);
+    if (aud_ < 0) {
         perror("Failed to open device");
         *exit = 1;
         return;
     }
     int ver;
     mousehw_t hwInfo;
-    ioctl(dev, MOUSE_GETHWINFO, &hwInfo);
+    ioctl(aud_, MOUSE_GETHWINFO, &hwInfo);
     print("Number of buttons: %d", hwInfo.buttons);*/
 }
 
 Touchpad::~Touchpad() {
-    //close(dev);
+    //close(aud_);
 }
