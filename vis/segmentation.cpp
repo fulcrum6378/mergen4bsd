@@ -1,7 +1,6 @@
 #include <algorithm> // std::sort
 #include <chrono>
 #include <cmath>
-#include <cstring>
 #include <filesystem>
 #include <set> // RG2
 #include <sys/stat.h> // SAVE_BITMAPS
@@ -12,8 +11,11 @@
 
 using namespace std;
 
-Segmentation::Segmentation(unsigned char **buf) : buf_(buf), stm(new VisualSTM()) {
+Segmentation::Segmentation(unsigned char **buf) : buf_(buf) {
 
+#if VISUAL_STM
+    stm = new VisualSTM;
+#endif
 #if SAVE_BITMAPS >= 1 // prepare to save bitmaps if wanted
     struct stat sb{};
     if (stat(dirBitmap.c_str(), &sb) != 0)
@@ -82,28 +84,32 @@ void Segmentation::Process() {
                 status[y][x] = seg.id;
                 // left
                 stack[last][2]++;
-                if (x > 0u && status[y][x - 1u] == 0 && CompareColours(&arr[y][x], &arr[y][x - 1u])) {
+                if (x > 0u && status[y][x - 1u] == 0 &&
+                    CompareColours(&arr[y][x], &arr[y][x - 1u])) {
                     stack.push_back({y, static_cast<uint16_t>(x - 1u), 0u});
                     continue;
                 }
             }
             if (dr <= 1u) { // top
                 stack[last][2]++;
-                if (y > 0u && status[y - 1u][x] == 0 && CompareColours(&arr[y][x], &arr[y - 1u][x])) {
+                if (y > 0u && status[y - 1u][x] == 0 &&
+                    CompareColours(&arr[y][x], &arr[y - 1u][x])) {
                     stack.push_back({static_cast<uint16_t>(y - 1u), x, 0u});
                     continue;
                 }
             }
             if (dr <= 2u) { // right
                 stack[last][2]++;
-                if (x < (W - 1u) && status[y][x + 1u] == 0 && CompareColours(&arr[y][x], &arr[y][x + 1u])) {
+                if (x < (W - 1u) && status[y][x + 1u] == 0 &&
+                    CompareColours(&arr[y][x], &arr[y][x + 1u])) {
                     stack.push_back({y, static_cast<uint16_t>(x + 1u), 0u});
                     continue;
                 }
             }
             if (dr <= 3u) { // bottom
                 stack[last][2]++;
-                if (y < (H - 1u) && status[y + 1u][x] == 0 && CompareColours(&arr[y][x], &arr[y + 1u][x])) {
+                if (y < (H - 1u) && status[y + 1u][x] == 0 &&
+                    CompareColours(&arr[y][x], &arr[y + 1u][x])) {
                     stack.push_back({static_cast<uint16_t>(y + 1u), x, 0u});
                     continue;
                 }
@@ -227,7 +233,7 @@ void Segmentation::Process() {
     auto delta3 = chrono::duration_cast<chrono::milliseconds>(
             chrono::system_clock::now() - t0).count();
 
-    // 4. average colours + detect boundaries
+    // 4. measurement of average colours and dimensions
     t0 = chrono::system_clock::now();
     uint32_t l_;
 #if MIN_SEG_SIZE != 1u
@@ -242,7 +248,7 @@ void Segmentation::Process() {
         for (auto &ss: segments) {
             Segment seg = ss.second;
 #endif
-        // average colours of each segment
+        // measure average colours of each segment
         l_ = seg.p.size();
 #if MIN_SEG_SIZE != 1u
         ys = 0ull, us = 0ull, vs = 0ull;
@@ -263,7 +269,7 @@ void Segmentation::Process() {
         // https://stackoverflow.com/questions/649454/what-is-the-best-way-to-average-two-colors-that-
         // define-a-linear-gradient
 
-        // detect boundaries (min_y, min_x, max_y, max_x)
+        // measure dimensions (min_y, min_x, max_y, max_x)
         isFirst = true;
         for (uint32_t &p: seg.p) {
             y = p >> 16;
@@ -290,7 +296,7 @@ void Segmentation::Process() {
     auto delta4 = chrono::duration_cast<chrono::milliseconds>(
             chrono::system_clock::now() - t0).count();
 
-    // 5. trace border pixels
+    // 5. tracing border pixels
     t0 = chrono::system_clock::now();
     for (y = 0u; y < H; y++) {
         if (y == 0u || y == H - 1u)
@@ -310,48 +316,62 @@ void Segmentation::Process() {
             }
     }
 #if SAVE_BITMAPS == 2
-    bitmap(arr, dirBitmap + to_string(stm->nextFrameId) + ".bmp");
+    bitmap(arr);
 #endif
     auto delta5 = chrono::duration_cast<chrono::milliseconds>(
             chrono::system_clock::now() - t0).count();
 
-    // 6. (save in VisualSTM and) track objects and measure their differences
+    // 6. measurement; sort segments, track them from a previous frame and measure their differences
     t0 = chrono::system_clock::now();
 #if !RG2
     sort(segments.begin(), segments.end(),
          [](const Segment &a, const Segment &b) { return a.p.size() > b.p.size(); });
     float nearest_dist, dist;
     int32_t best;
+    uint16_t sdx, uBest;
     l_ = segments.size();
-    for (uint16_t sid = 0u; sid < MAX_SEGS; sid++) {// Segment &seg: segments
-        if (sid >= l_) break;
+    for (uint16_t sid = sidInc; sid < sidInc + MAX_SEGS; sid++) {// Segment &seg: segments
+        sdx = sid - sidInc;
+        if (sdx >= l_) break;
         Segment *seg = &segments[sid];
         seg->ComputeRatioAndCentre();
 #if VISUAL_STM
         stm->Insert(seg);
 #endif
+        best = -1;
         if (!prev_segments.empty()) {
             for (uint8_t y_ = seg->m[0] - Y_RADIUS; y_ < seg->m[0] + Y_RADIUS; y_++) {
                 auto it = yi.find(y_);
-                if (it == yi.end()) continue;
+                if (it == yi.end()) {
+                    if (y_ != 255u) continue; else break;
+                }
                 for (uint16_t i: (*it).second) a_y.insert(i);
+                if (y_ == 255u) break;
             }
             for (uint8_t u_ = seg->m[1] - U_RADIUS; u_ < seg->m[1] + U_RADIUS; u_++) {
                 auto it = ui.find(u_);
-                if (it == ui.end()) continue;
+                if (it == ui.end()) {
+                    if (u_ != 255u) continue; else break;
+                }
                 for (uint16_t i: (*it).second) a_u.insert(i);
+                if (u_ == 255u) break;
             }
             for (uint8_t v_ = seg->m[2] - V_RADIUS; v_ < seg->m[2] + V_RADIUS; v_++) {
                 auto it = vi.find(v_);
-                if (it == vi.end()) continue;
+                if (it == vi.end()) {
+                    if (v_ != 255u) continue; else break;
+                }
                 for (uint16_t i: (*it).second) a_v.insert(i);
+                if (v_ == 255u) break;
             }
             for (uint16_t r_ = seg->r - R_RADIUS; r_ < seg->r + R_RADIUS; r_++) {
                 auto it = ri.find(r_);
-                if (it == ri.end()) continue;
+                if (it == ri.end()) {
+                    if (r_ != 255u) continue; else break;
+                }
                 for (uint16_t i: (*it).second) a_r.insert(i);
+                if (r_ == 255u) break;
             }
-            best = -1;
             for (uint16_t can: a_y)
                 if (a_u.find(can) != a_u.end() && a_v.find(can) != a_v.end()
                     && a_r.find(can) != a_r.end()) {
@@ -371,6 +391,7 @@ void Segmentation::Process() {
             a_v.clear();
             a_r.clear();
             if (best != -1) {
+                print("SID %u == %d", sid, best);
                 Segment *prev_seg = &prev_segments[best];
                 diff[sid] = {
                         best, static_cast<int32_t>(nearest_dist),
@@ -398,6 +419,7 @@ void Segmentation::Process() {
 #if VISUAL_STM
     stm->OnFrameFinished();
 #endif
+    sidInc += MAX_SEGS; // min(MAX_SEGS, l_); (leave these empty so that those can be tracked by `best`)
 #endif //!RG2
     auto delta6 = chrono::duration_cast<chrono::milliseconds>(
             chrono::system_clock::now() - t0).count();
@@ -461,5 +483,7 @@ void Segmentation::SetAsBorder(uint16_t y, uint16_t x) {
 }
 
 Segmentation::~Segmentation() {
+#if VISUAL_STM
     delete stm;
+#endif
 }

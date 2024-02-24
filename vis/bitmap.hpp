@@ -35,14 +35,16 @@ struct bmpfile_dib_info {
 #pragma clang diagnostic pop
 
 static const int16_t w = 640, h = 480;
-static const std::string dirBitmap = "vis/bmp/";
+static const std::string dirBitmap("vis/bmp/"); // required in "segmentation.cpp"
+static uint32_t frameId = 1u;
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "UnreachableCode"
 #pragma ide diagnostic ignored "ConstantConditionsOC"
 
-[[maybe_unused]] void bitmap(unsigned char arr[h][w][3], const std::string &path) {
-    std::ofstream bmp(path, std::ios::binary);
+[[maybe_unused]] void bitmap(unsigned char arr[h][w][3]) {
+    std::ofstream bmp(dirBitmap + std::to_string(frameId) + ".bmp", std::ios::binary);
+    frameId++;
 
     bmpfile_magic magic{'B', 'M'};
     bmp.write((char *) (&magic), sizeof(magic));

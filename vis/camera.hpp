@@ -20,13 +20,11 @@ private:
     int dev;
     /**
      * Install V4L utilities for gathering information about your system.
-     * $ sudo apt install v4l-utils
+     * $ pkg install v4l-utils
+     * $ v4l2-ctl --all
      *
-     * List available formats: $ v4l2-ctl --list-format
-     * My laptop (Dell XPS L502X):
-     *   [0]: 'YUYV' (YUYV 4:2:2)
-     *   [1]: 'MJPG' (Motion-JPEG, compressed)
-     * Display all data: $ v4l2-ctl --list-devices
+     * My laptop (Dell XPS L502X) and my old laptop ():
+     *     'YUYV' (4:2:2), 640/480
      */
     v4l2_format imageFormat{};
     v4l2_buffer buffer_info{};
