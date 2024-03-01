@@ -44,26 +44,18 @@ Camera::Camera(int *exit) {
         return;
     }
 
-    // the device supports video capture.
-    //print("Query: %u", (reqBuf.capabilities & V4L2_BUF_CAP_SUPPORTS_MMAP) >> 0); // => 1
-    //print("%u", reqBuf.count); => 1
-
-    // retrieve data on the allocated buffer (must necessarily be separate from `buf_info`)
-    v4l2_buffer queryBuf{.index=buf_info.index, .type=buf_info.type, .field=buf_info.field, .memory=buf_info.memory};
-    //ioctl(dev, VIDIOC_QUERYBUF, &queryBuf);
-    if (ioctl(dev, VIDIOC_QUERYBUF, &queryBuf) == -1) {
+    // retrieve data on the allocated buffer, then map and clean the buffer
+    if (ioctl(dev, VIDIOC_QUERYBUF, &buf_info) == -1) {
         print("Camera didn't return the buffer information: %d", errno);
         *exit = 5;
         return;
     }
-
-    // map and clean the buffer
     buf = (unsigned char *) mmap(
-            nullptr, queryBuf.length, PROT_READ | PROT_WRITE, MAP_SHARED,
-            dev, queryBuf.m.offset);
-    memset(buf, 0, queryBuf.length);
+            nullptr, buf_info.length, PROT_READ | PROT_WRITE, MAP_SHARED,
+            dev, buf_info.m.offset);
+    memset(buf, 0, buf_info.length);
 
-    // start streaming using `buf_info`
+    // start streaming
     if (ioctl(dev, VIDIOC_STREAMON, &buf_info.type) == -1) {
         print("Camera couldn't start streaming: %d", errno);
         *exit = 6;

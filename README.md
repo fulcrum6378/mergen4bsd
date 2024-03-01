@@ -7,19 +7,19 @@ as a subproject of [**Mergen IV**](https://github.com/fulcrum6378/mergen_android
 
 FreeBSD uses the same webcam drivers of Linux's, ported as [**webcamd**](https://github.com/hselasky/webcamd).
 
-\# `pkg install webcamd`
+~\# `pkg install webcamd`
 
 Then run it to see a list of available devices:
 
-\# `webcamd`
+~\# `webcamd`
 
 Find the actual webcam and start the daemon in the background:
 
-\# `webcamd -d <device name> -B`
+~\# `webcamd -d <device name> -B`
 
 Now you'll need to install [**Video4Linux2**](https://en.wikipedia.org/wiki/Video4Linux) API headers too:
 
-\# `pkg install v4l_compat`
+~\# `pkg install v4l_compat`
 
 ***
 
