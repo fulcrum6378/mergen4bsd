@@ -3,7 +3,6 @@
 #include "global.hpp"
 #include "aud/microphone.hpp"
 #include "aud/speaker.hpp"
-#include "hpt/touchpad.hpp"
 #include "vis/camera.hpp"
 
 int main() {
@@ -16,10 +15,8 @@ int main() {
     if (exit != 0) return 20 + exit;
     auto *aud_out = new Speaker(&exit, aud);
     if (exit != 0) return 30 + exit;
-    auto *hpt = new Touchpad(&exit);
-    if (exit != 0) return 40 + exit;
     auto vis = new Camera(&exit);
-    if (exit != 0) return 50 + exit;
+    if (exit != 0) return 40 + exit;
 
     // listen for a stop signal
     on = true;
@@ -31,7 +28,6 @@ int main() {
     delete aud_in;
     delete aud_out;
     delete aud;
-    delete hpt;
     delete vis;
 
     return 0;

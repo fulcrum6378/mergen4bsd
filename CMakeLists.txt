@@ -16,9 +16,6 @@ add_executable(Mergen
         aud/speaker.cpp
         aud/speaker.hpp
 
-        hpt/touchpad.cpp
-        hpt/touchpad.hpp
-
         vis/bitmap.hpp
         vis/camera.cpp
         vis/camera.hpp
