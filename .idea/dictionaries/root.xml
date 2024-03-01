@@ -7,10 +7,13 @@
       <w>bytesused</w>
       <w>clipcount</w>
       <w>colorspace</w>
+      <w>compat</w>
       <w>comprehender</w>
       <w>dataformat</w>
       <w>dmabuf</w>
       <w>dqbuf</w>
+      <w>errno</w>
+      <w>framesizes</w>
       <w>hres</w>
       <w>lpthread</w>
       <w>mergen</w>

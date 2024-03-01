@@ -1,4 +1,5 @@
 #include <cstring>
+#include <errno.h> // errno for ioctl: https://en.wikipedia.org/wiki/Errno.h#GLIBC_macros
 #include <fcntl.h> // O_RDWR (oflag)
 #include <iostream> // perror
 #include <sys/ioctl.h>
@@ -11,49 +12,63 @@
 using namespace std;
 
 Camera::Camera(int *exit) {
+    // open first camera device and check its capabilities
     if ((dev = open("/dev/video0", O_RDWR)) == -1) {
-        perror("Failed to open device");
+        perror("Failed to open camera");
         *exit = 1;
         return;
     }
     v4l2_capability capability{};
     if (ioctl(dev, VIDIOC_QUERYCAP, &capability) == -1) {
-        perror("This device cannot capture frames");
+        perror("This camera cannot capture frames");
         *exit = 2;
         return;
     }
 
-    // v4l2_format
-    imageFormat.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    imageFormat.fmt.pix.width = 640u;
-    imageFormat.fmt.pix.height = 480u;
-    imageFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV; // V4L2_PIX_FMT_MJPEG -> V4L2_PIX_FMT_YUYV
+    // set `v4l2_format` on camera
+    imageFormat.fmt.pix.width = W;
+    imageFormat.fmt.pix.height = H;
+    imageFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
     imageFormat.fmt.pix.field = V4L2_FIELD_NONE;
-    ioctl(dev, VIDIOC_S_FMT, &imageFormat);
+    if (ioctl(dev, VIDIOC_S_FMT, &imageFormat) == -1) {
+        print("Camera could not set format: %d", errno);
+        *exit = 3;
+        return;
+    }
 
-    v4l2_requestbuffers requestBuffer{};
-    requestBuffer.count = 1; // one request buffer
-    requestBuffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    requestBuffer.memory = V4L2_MEMORY_MMAP;
-    ioctl(dev, VIDIOC_REQBUFS, &requestBuffer);
+    // allocate a buffer
+    v4l2_requestbuffers reqBuf{1u, buf_info.type, buf_info.memory};
+    if (ioctl(dev, VIDIOC_REQBUFS, &reqBuf) == -1) {
+        print("Couldn't request buffer from camera: %d", errno);
+        *exit = 4;
+        return;
+    }
 
-    v4l2_buffer queryBuffer{};
-    queryBuffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    queryBuffer.memory = V4L2_MEMORY_MMAP;
-    queryBuffer.index = 0u;
-    ioctl(dev, VIDIOC_QUERYBUF, &queryBuffer);
+    // the device supports video capture.
+    //print("Query: %u", (reqBuf.capabilities & V4L2_BUF_CAP_SUPPORTS_MMAP) >> 0); // => 1
+    //print("%u", reqBuf.count); => 1
 
+    // retrieve data on the allocated buffer (must necessarily be separate from `buf_info`)
+    v4l2_buffer queryBuf{.index=buf_info.index, .type=buf_info.type, .field=buf_info.field, .memory=buf_info.memory};
+    //ioctl(dev, VIDIOC_QUERYBUF, &queryBuf);
+    if (ioctl(dev, VIDIOC_QUERYBUF, &queryBuf) == -1) {
+        print("Camera didn't return the buffer information: %d", errno);
+        *exit = 5;
+        return;
+    }
+
+    // map and clean the buffer
     buf = (unsigned char *) mmap(
-            nullptr, queryBuffer.length, PROT_READ | PROT_WRITE, MAP_SHARED,
-            dev, queryBuffer.m.offset);
-    memset(buf, 0, queryBuffer.length);
+            nullptr, queryBuf.length, PROT_READ | PROT_WRITE, MAP_SHARED,
+            dev, queryBuf.m.offset);
+    memset(buf, 0, queryBuf.length);
 
-    // v4l2_buffer (must necessarily be separate from `queryBuffer`)
-    memset(&buffer_info, 0, sizeof(buffer_info));
-    buffer_info.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    buffer_info.memory = V4L2_MEMORY_MMAP;
-    buffer_info.index = 0u;
-    ioctl(dev, VIDIOC_STREAMON, &buffer_info.type);
+    // start streaming using `buf_info`
+    if (ioctl(dev, VIDIOC_STREAMON, &buf_info.type) == -1) {
+        print("Camera couldn't start streaming: %d", errno);
+        *exit = 6;
+        return;
+    }
 
     // prepare for analysis and start recording
     segmentation = new Segmentation(&buf);
@@ -64,10 +79,10 @@ Camera::Camera(int *exit) {
 
 void Camera::Record() {
     while (on) {
-        ioctl(dev, VIDIOC_QBUF, &buffer_info);
-        ioctl(dev, VIDIOC_DQBUF, &buffer_info);
+        ioctl(dev, VIDIOC_QBUF, &buf_info);
+        ioctl(dev, VIDIOC_DQBUF, &buf_info);
 
-        segmentation->bufLength = buffer_info.bytesused;
+        segmentation->bufLength = buf_info.bytesused;
         segmentation->Process();
     }
 #if VISUAL_STM
@@ -80,6 +95,6 @@ void Camera::Record() {
 Camera::~Camera() {
     recFuture.wait();
     delete segmentation;
-    ioctl(dev, VIDIOC_STREAMOFF, &buffer_info.bytesused);
+    ioctl(dev, VIDIOC_STREAMOFF, &buf_info.bytesused);
     close(dev);
 }

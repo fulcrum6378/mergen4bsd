@@ -2,7 +2,6 @@
 
 #include "global.hpp"
 #include "aud/microphone.hpp"
-#include "aud/sound_card.hpp"
 #include "aud/speaker.hpp"
 #include "hpt/touchpad.hpp"
 #include "vis/camera.hpp"
@@ -23,6 +22,7 @@ int main() {
     if (exit != 0) return 50 + exit;
 
     // listen for a stop signal
+    on = true;
     print("");
     std::cin.ignore();
     on = false;

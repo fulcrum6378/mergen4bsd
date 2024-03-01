@@ -3,6 +3,7 @@ project(Mergen)
 
 set(CMAKE_CXX_STANDARD 20)
 find_package(Threads)
+include_directories(/usr/local/include/)
 
 add_executable(Mergen
         main.cpp
@@ -26,7 +27,6 @@ add_executable(Mergen
         vis/segment.hpp
         vis/segmentation.cpp
         vis/segmentation.hpp
-        vis/videodev2.hpp
         vis/visual_stm.cpp
         vis/visual_stm.hpp
 )
