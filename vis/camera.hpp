@@ -21,22 +21,25 @@ private:
     /**
      * Install V4L utilities for gathering information about your system.
      * $ pkg install v4l-utils
-	 *
-     * $ v4l2-ctl --list-formats
-     *     [0]: 'YUYV' (YUYV 4:2:2)
-     * 	   [1]: 'MJPG' (Motion-JPEG, compressed)
-	 *
-	 * $ v4l2-ctl --list-framesizes 0
-	 *     Size: Discrete 640x480
-	 *     ...
+	 * $ v4l2-ctl --all
+     * ...
+	 * Format Video Capture:
+	 *     Width/Height      : 640/480
+     *     Pixel Format      : 'YUYV' (YUYV 4:2:2)
+     *     Field             : None
+     *     Bytes per Line    : 1280
+     *     Size Image        : 614400
+     * ...
      */
-    v4l2_format imageFormat{V4L2_BUF_TYPE_VIDEO_CAPTURE};
+    v4l2_format imageFormat{
+            V4L2_BUF_TYPE_VIDEO_CAPTURE, {W, H, V4L2_PIX_FMT_YUYV, V4L2_FIELD_NONE}
+    };
     v4l2_buffer buf_info{
-			.index = 0u,
-			.type = V4L2_BUF_TYPE_VIDEO_CAPTURE,
-			.field = V4L2_FIELD_NONE,
-			.memory = V4L2_MEMORY_MMAP
-	};
+            .index = 0u,
+            .type = V4L2_BUF_TYPE_VIDEO_CAPTURE,
+            .field = V4L2_FIELD_NONE,
+            .memory = V4L2_MEMORY_MMAP
+    };
     unsigned char *buf;
 
     std::thread record;

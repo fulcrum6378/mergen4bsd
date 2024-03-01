@@ -25,11 +25,7 @@ Camera::Camera(int *exit) {
         return;
     }
 
-    // set `v4l2_format` on camera
-    imageFormat.fmt.pix.width = W;
-    imageFormat.fmt.pix.height = H;
-    imageFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-    imageFormat.fmt.pix.field = V4L2_FIELD_NONE;
+    // set image format for camera
     if (ioctl(dev, VIDIOC_S_FMT, &imageFormat) == -1) {
         print("Camera could not set format: %d", errno);
         *exit = 3;
