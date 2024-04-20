@@ -19,6 +19,7 @@ add_executable(Mergen
         vis/bitmap.hpp
         vis/camera.cpp
         vis/camera.hpp
+        vis/global.hpp
         vis/memory.cpp
         vis/memory.hpp
         vis/segment.hpp

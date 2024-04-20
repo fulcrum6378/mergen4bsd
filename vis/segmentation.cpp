@@ -29,7 +29,7 @@ Segmentation::Segmentation(unsigned char **buf) : buf_(buf) {
 void Segmentation::Process() {
 
     // 1. loading; bring separate YUV data into the multidimensional array of pixels `arr`
-    auto t0 = chrono::system_clock::now();
+    auto checkPoint = chrono::system_clock::now();
     int off = 0, ww = static_cast<int>(W);
     for (int j = 0; j < bufLength; j += 4) {
         int yy = (off / 3) / ww, xx = (off / 3) % ww;
@@ -45,10 +45,10 @@ void Segmentation::Process() {
     bitmap(arr, dirBitmap + to_string(stm->nextFrameId) + ".bmp");
 #endif
     auto delta1 = chrono::duration_cast<chrono::milliseconds>(
-            chrono::system_clock::now() - t0).count();
+            chrono::system_clock::now() - checkPoint).count();
 
     // 2. segmentation
-    t0 = chrono::system_clock::now();
+    checkPoint = chrono::system_clock::now();
     uint32_t nextSeg = 1u;
 #if !RG2
     uint16_t thisY = 0u, thisX = 0u;
@@ -68,24 +68,33 @@ void Segmentation::Process() {
         }
         if (!foundSthToAnalyse) break;
 
-        Segment seg{nextSeg};
+        Segment seg{nextSeg,
+#if SEG_BASE_COLOUR
+                &arr[thisY][thisX]
+#endif
+        };
         stack.push_back({thisY, thisX, 0u});
         nextSeg++;
         uint16_t y, x, dr;
+        uint8_t (*aa)[3];
         while ((last = static_cast<int64_t>(stack.size()) - 1) != -1) {
-            y = stack[last][0], x = stack[last][1], dr = stack[last][2];
+            y = stack[last][0], x = stack[last][1], dr = stack[last][2], aa = &arr[y][x];
             if (dr == 0) {
                 seg.p.push_back((y << 16) | x);
-#if MIN_SEG_SIZE == 1u // add colours in order to compute their mean value later
-                seg.ys += arr[y][x][0] * arr[y][x][0];
-                seg.us += arr[y][x][1] * arr[y][x][1];
-                seg.vs += arr[y][x][2] * arr[y][x][2];
+#if SEG_MIN_SIZE == 1u // add colours in order to compute their mean value later
+                seg.ys += aa[0] * aa[0];
+                seg.us += aa[1] * aa[1];
+                seg.vs += aa[2] * aa[2];
 #endif
                 status[y][x] = seg.id;
                 // left
                 stack[last][2]++;
                 if (x > 0u && status[y][x - 1u] == 0 &&
-                    CompareColours(&arr[y][x], &arr[y][x - 1u])) {
+                    CompareColours(aa, &arr[y][x - 1u]
+#if SEG_BASE_COLOUR
+                            , seg.base
+#endif
+                    )) {
                     stack.push_back({y, static_cast<uint16_t>(x - 1u), 0u});
                     continue;
                 }
@@ -93,7 +102,11 @@ void Segmentation::Process() {
             if (dr <= 1u) { // top
                 stack[last][2]++;
                 if (y > 0u && status[y - 1u][x] == 0 &&
-                    CompareColours(&arr[y][x], &arr[y - 1u][x])) {
+                    CompareColours(aa, &arr[y - 1u][x]
+#if SEG_BASE_COLOUR
+                            , seg.base
+#endif
+                    )) {
                     stack.push_back({static_cast<uint16_t>(y - 1u), x, 0u});
                     continue;
                 }
@@ -101,7 +114,11 @@ void Segmentation::Process() {
             if (dr <= 2u) { // right
                 stack[last][2]++;
                 if (x < (W - 1u) && status[y][x + 1u] == 0 &&
-                    CompareColours(&arr[y][x], &arr[y][x + 1u])) {
+                    CompareColours(aa, &arr[y][x + 1u]
+#if SEG_BASE_COLOUR
+                            , seg.base
+#endif
+                    )) {
                     stack.push_back({y, static_cast<uint16_t>(x + 1u), 0u});
                     continue;
                 }
@@ -109,7 +126,11 @@ void Segmentation::Process() {
             if (dr <= 3u) { // bottom
                 stack[last][2]++;
                 if (y < (H - 1u) && status[y + 1u][x] == 0 &&
-                    CompareColours(&arr[y][x], &arr[y + 1u][x])) {
+                    CompareColours(aa, &arr[y + 1u][x]
+#if SEG_BASE_COLOUR
+                            , seg.base
+#endif
+                    )) {
                     stack.push_back({static_cast<uint16_t>(y + 1u), x, 0u});
                     continue;
                 }
@@ -206,15 +227,15 @@ void Segmentation::Process() {
     }
 #endif //RG2
     auto delta2 = chrono::duration_cast<chrono::milliseconds>(
-            chrono::system_clock::now() - t0).count();
+            chrono::system_clock::now() - checkPoint).count();
 
     // 3. dissolution
-    t0 = chrono::system_clock::now();
-#if MIN_SEG_SIZE != 1u && !RG2
+    checkPoint = chrono::system_clock::now();
+#if SEG_MIN_SIZE != 1u && !RG2
     uint32_t absorber_i, size_bef = segments.size(), removal = 1u;
     Segment *absorber;
     for (int32_t seg = static_cast<int32_t>(size_bef) - 1; seg > -1; seg--)
-        if (segments[seg].p.size() < MIN_SEG_SIZE) {
+        if (segments[seg].p.size() < SEG_MIN_SIZE) {
             absorber_i = FindPixelOfASegmentToDissolveIn(&segments[seg]);
             if (absorber_i == 0xFFFFFFFF) continue;
             absorber = &segments[status[absorber_i >> 16][absorber_i & 0xFFFF] - 1u];
@@ -231,12 +252,12 @@ void Segmentation::Process() {
     print("Total segments: %zu", segments.size());
 #endif
     auto delta3 = chrono::duration_cast<chrono::milliseconds>(
-            chrono::system_clock::now() - t0).count();
+            chrono::system_clock::now() - checkPoint).count();
 
     // 4. measurement of average colours and dimensions
-    t0 = chrono::system_clock::now();
+    checkPoint = chrono::system_clock::now();
     uint32_t l_;
-#if MIN_SEG_SIZE != 1u
+#if SEG_MIN_SIZE != 1u
     array<uint8_t, 3u> *col;
     uint64_t ys, us, vs;
 #endif
@@ -250,7 +271,7 @@ void Segmentation::Process() {
 #endif
         // measure average colours of each segment
         l_ = seg.p.size();
-#if MIN_SEG_SIZE != 1u
+#if SEG_MIN_SIZE != 1u
         ys = 0ull, us = 0ull, vs = 0ull;
         for (uint32_t p: seg.p) {
             col = reinterpret_cast<array<uint8_t, 3u> *>(&arr[p >> 16][p & 0xFFFF]);
@@ -294,10 +315,10 @@ void Segmentation::Process() {
         s_index[seg.id] = &seg;
     }
     auto delta4 = chrono::duration_cast<chrono::milliseconds>(
-            chrono::system_clock::now() - t0).count();
+            chrono::system_clock::now() - checkPoint).count();
 
     // 5. tracing border pixels
-    t0 = chrono::system_clock::now();
+    checkPoint = chrono::system_clock::now();
     for (y = 0u; y < H; y++) {
         if (y == 0u || y == H - 1u)
             for (x = 0u; x < W; x++)
@@ -319,21 +340,21 @@ void Segmentation::Process() {
     bitmap(arr);
 #endif
     auto delta5 = chrono::duration_cast<chrono::milliseconds>(
-            chrono::system_clock::now() - t0).count();
+            chrono::system_clock::now() - checkPoint).count();
 
-    // 6. measurement; sort segments, track them from a previous frame and measure their differences
-    t0 = chrono::system_clock::now();
+    // 6. tracking; sort segments, track them from a previous frame and measure their differences
+    checkPoint = chrono::system_clock::now();
 #if !RG2
     sort(segments.begin(), segments.end(),
          [](const Segment &a, const Segment &b) { return a.p.size() > b.p.size(); });
     float nearest_dist, dist;
-    int32_t best;
+    int16_t best;
     uint16_t sdx, uBest;
     l_ = segments.size();
-    for (uint16_t sid = sidInc; sid < sidInc + MAX_SEGS; sid++) {// Segment &seg: segments
+    for (uint16_t sid = sidInc; sid < sidInc + MAX_SEGS; sid++) {
         sdx = sid - sidInc;
         if (sdx >= l_) break;
-        Segment *seg = &segments[sid];
+        Segment *seg = &segments[sdx];
         seg->ComputeRatioAndCentre();
 #if VISUAL_STM
         stm->Insert(seg);
@@ -380,12 +401,13 @@ void Segmentation::Process() {
                                                    std::pow(seg->cy - prev_seg->cy, 2)));
                     if (best == -1) { // NOLINT(bugprone-branch-clone)
                         nearest_dist = dist;
-                        best = static_cast<int32_t>(can);
+                        best = static_cast<int16_t>(can);
                     } else if (dist < nearest_dist) {
                         nearest_dist = dist;
-                        best = static_cast<int32_t>(can);
+                        best = static_cast<int16_t>(can);
                     } // else {don't set `best` here}
                 }
+            // TO-DO what if the colour and/or ratio have/has changed?
             a_y.clear();
             a_u.clear();
             a_v.clear();
@@ -402,8 +424,7 @@ void Segmentation::Process() {
                 /*print("%u->%d : %d, %d, %d, %d, %d, %d, %d", sid, diff[sid][0], diff[sid][1],
                      diff[sid][2], diff[sid][3], diff[sid][4],
                      diff[sid][5], diff[sid][6], diff[sid][7]);*/
-            }/* else
-                print("Segment %u was lost", sid);*/
+            }// else print("Segment %u was lost", sid);
         }
         // index segments of the current frame
         _yi[seg->m[0]].insert(sid);
@@ -421,10 +442,11 @@ void Segmentation::Process() {
 #endif
     sidInc += MAX_SEGS; // min(MAX_SEGS, l_); (leave these empty so that those can be tracked by `best`)
 #endif //!RG2
+    if (sidInc > 32767u) sidInc -= 32767u;
     auto delta6 = chrono::duration_cast<chrono::milliseconds>(
             chrono::system_clock::now() - t0).count();
 
-    // summary: loading + segmentation + dissolution + segment_analysis + tracing + saving
+    // summary: loading + segmentation + dissolution + measurement + tracing + tracking
     print("Delta times: %lld + %lld + %lld + %lld + %lld + %lld => %lld",
           delta1, delta2, delta3, delta4, delta5, delta6,
           delta1 + delta2 + delta3 + delta4 + delta5 + delta6);
@@ -438,10 +460,20 @@ void Segmentation::Process() {
     diff.clear();
 }
 
-bool Segmentation::CompareColours(uint8_t (*a)[3], uint8_t (*b)[3]) {
+bool Segmentation::CompareColours(uint8_t (*a)[3], uint8_t (*b)[3]
+#if SEG_BASE_COLOUR
+        , uint8_t(*base)[3]
+#endif
+) {
     return abs((*a)[0] - (*b)[0]) <= 4 &&
            abs((*a)[1] - (*b)[1]) <= 4 &&
-           abs((*a)[2] - (*b)[2]) <= 4;
+           abs((*a)[2] - (*b)[2]) <= 4
+#if SEG_BASE_COLOUR
+        && abs((*base)[0] - (*b)[0]) <= 40
+        && abs((*base)[1] - (*b)[1]) <= 40
+        && abs((*base)[2] - (*b)[2]) <= 40
+#endif
+            ;
 }
 
 uint32_t Segmentation::FindPixelOfASegmentToDissolveIn(Segment *seg) {
