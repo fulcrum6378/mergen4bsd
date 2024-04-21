@@ -1,15 +1,19 @@
+#define CL_HPP_TARGET_OPENCL_VERSION 300
+#define CL_HPP_ENABLE_EXCEPTIONS
+
 #include <iostream>
+#include <CL/opencl.hpp> // pkg install opencl
 
 #include "global.hpp"
-#include "aud/microphone.hpp"
+/*#include "aud/microphone.hpp"
 #include "aud/speaker.hpp"
-#include "vis/camera.hpp"
+#include "vis/camera.hpp"*/
 
 int main() {
     int exit = 0;
 
     // construct the low-level components (sensors/controls)
-    auto *aud = new SoundCard(&exit);
+    /*auto *aud = new SoundCard(&exit);
     if (exit != 0) return 10 + exit;
     auto *aud_in = new Microphone(&exit, aud);
     if (exit != 0) return 20 + exit;
@@ -28,7 +32,11 @@ int main() {
     delete aud_in;
     delete aud_out;
     delete aud;
-    delete vis;
+    delete vis;*/
 
-    return 0;
+    std::vector<cl::Platform> allPlatforms;
+    cl::Platform::get(&allPlatforms);
+    print("Size: %zu", allPlatforms.size());
+
+    return exit;
 }

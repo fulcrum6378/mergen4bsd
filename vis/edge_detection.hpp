@@ -22,7 +22,7 @@ private:
     // multidimensional array of pixels
     uint8_t arr[H][W][3]{};
     // maps pixels to their status of being border or not
-    uint8_t b_status[H][W]{};
+    uint8_t statuses[H][W]{};
 };
 
 #endif //VIS_EDGE_DETECTION_H

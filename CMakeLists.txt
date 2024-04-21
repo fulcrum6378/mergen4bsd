@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.26)
 project(Mergen)
-
 set(CMAKE_CXX_STANDARD 20)
-find_package(Threads)
-include_directories(/usr/local/include/)
 
 add_executable(Mergen
         main.cpp
@@ -31,4 +28,10 @@ add_executable(Mergen
         vis/visual_stm.hpp
 )
 
-target_link_libraries(Mergen ${CMAKE_THREAD_LIBS_INIT})
+include_directories(/usr/local/include/)
+find_package(OpenCL) # pkg install ocl-icd
+find_package(Threads)
+target_link_libraries(Mergen
+        ${OpenCL_LIBRARY}
+        ${CMAKE_THREAD_LIBS_INIT}
+)
