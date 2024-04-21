@@ -6,7 +6,7 @@
 #include <thread>
 
 // image processing method: 1 => Segmentation, 2 => EdgeDetection.
-#define VIS_METHOD 2
+#define VIS_METHOD 1
 
 #if VIS_METHOD == 1
 

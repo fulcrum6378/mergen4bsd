@@ -17,7 +17,7 @@ The main thread listens if you press the Enter button; then it will stop recordi
 
 ### Dependencies
 
-##### 1. [WebcamD](https://github.com/hselasky/webcamd)
+#### 1. [WebcamD](https://github.com/hselasky/webcamd)
 
 FreeBSD uses the same webcam drivers of Linux's, ported as *webcamd* (webcam daemon).
 
@@ -31,20 +31,11 @@ Find the actual webcam and start the daemon in the background:
 
 ~ \# `webcamd -d <device name> -B`
 
-##### 2. [Video4Linux](https://en.wikipedia.org/wiki/Video4Linux)
+#### 2. [Video4Linux](https://en.wikipedia.org/wiki/Video4Linux)
 
 API headers for reading image frames from a supported webcam device.
 
 ~ \# `pkg install v4l_compat`
-
-##### 3. [OpenCL](https://wiki.freebsd.org/Graphics/OpenCL)
-
-OpenCL API headers and library for using GPUs for parallel computations.
-
-~ \# `pkg install opencl ocl-icd`
-
-We used the Vulkan API and its *Compute Shader* in the Android version instead.
-Port `intel-compute-runtime` supports only Intel HD Graphics 5000 or newer.
 
 ### License
 

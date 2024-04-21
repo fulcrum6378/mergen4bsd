@@ -29,9 +29,7 @@ add_executable(Mergen
 )
 
 include_directories(/usr/local/include/)
-find_package(OpenCL) # pkg install ocl-icd
 find_package(Threads)
 target_link_libraries(Mergen
-        ${OpenCL_LIBRARY}
         ${CMAKE_THREAD_LIBS_INIT}
 )

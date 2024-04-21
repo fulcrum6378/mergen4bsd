@@ -38,7 +38,7 @@
  * @see <a href="https://github.com/fulcrum6378/mycv/blob/master/perception/tracking.py">
  * Tracking (object tracking)</a>
  */
-class [[deprecated]] Segmentation {
+class Segmentation {
 public:
     explicit Segmentation(unsigned char **buf);
 
