@@ -59,7 +59,11 @@ Camera::Camera(int *exit) {
     }
 
     // prepare for analysis and start recording
+#if VIS_METHOD == 1
     segmentation = new Segmentation(&buf);
+#elif VIS_METHOD == 2
+    edgeDetection = new EdgeDetection(&buf);
+#endif
     recFuture = recPromise.get_future();
     record = std::thread(&Camera::Record, this);
     record.detach();
@@ -70,10 +74,15 @@ void Camera::Record() {
         ioctl(dev, VIDIOC_QBUF, &buf_info);
         ioctl(dev, VIDIOC_DQBUF, &buf_info);
 
+#if VIS_METHOD == 1
         segmentation->bufLength = buf_info.bytesused;
         segmentation->Process();
+#elif VIS_METHOD == 2
+        edgeDetection->bufLength = buf_info.bytesused;
+        edgeDetection->Process();
+#endif
     }
-#if VISUAL_STM
+#if VIS_METHOD == 1 && VISUAL_STM
     // if recording is over, save state of VisualSTM
     segmentation->stm->SaveState();
 #endif
@@ -82,7 +91,11 @@ void Camera::Record() {
 
 Camera::~Camera() {
     recFuture.wait();
+#if VIS_METHOD == 1
     delete segmentation;
+#elif VIS_METHOD == 2
+    delete edgeDetection;
+#endif
     ioctl(dev, VIDIOC_STREAMOFF, &buf_info.bytesused);
     close(dev);
 }

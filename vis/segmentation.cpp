@@ -3,7 +3,6 @@
 #include <cmath>
 #include <filesystem>
 #include <set> // RG2
-#include <sys/stat.h> // SAVE_BITMAPS
 
 #include "../global.hpp"
 #include "bitmap.hpp"
@@ -16,13 +15,8 @@ Segmentation::Segmentation(unsigned char **buf) : buf_(buf) {
 #if VISUAL_STM
     stm = new VisualSTM;
 #endif
-#if SAVE_BITMAPS >= 1 // prepare to save bitmaps if wanted
-    struct stat sb{};
-    if (stat(dirBitmap.c_str(), &sb) != 0)
-        mkdir(dirBitmap.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    else
-        for (const auto &entry: std::filesystem::directory_iterator(dirBitmap))
-            std::filesystem::remove_all(entry.path());
+#if SAVE_BITMAPS >= 1
+    Bitmap::createDir();
 #endif
 }
 
@@ -42,7 +36,7 @@ void Segmentation::Process() {
         off += 6;
     }
 #if SAVE_BITMAPS == 1
-    bitmap(arr, dirBitmap + to_string(stm->nextFrameId) + ".bmp");
+    Bitmap::save(arr);
 #endif
     auto delta1 = chrono::duration_cast<chrono::milliseconds>(
             chrono::system_clock::now() - checkPoint).count();
@@ -337,7 +331,7 @@ void Segmentation::Process() {
             }
     }
 #if SAVE_BITMAPS == 2
-    bitmap(arr);
+    Bitmap::save(arr);
 #endif
     auto delta5 = chrono::duration_cast<chrono::milliseconds>(
             chrono::system_clock::now() - checkPoint).count();
@@ -444,7 +438,7 @@ void Segmentation::Process() {
 #endif //!RG2
     if (sidInc > 32767u) sidInc -= 32767u;
     auto delta6 = chrono::duration_cast<chrono::milliseconds>(
-            chrono::system_clock::now() - t0).count();
+            chrono::system_clock::now() - checkPoint).count();
 
     // summary: loading + segmentation + dissolution + measurement + tracing + tracking
     print("Delta times: %lld + %lld + %lld + %lld + %lld + %lld => %lld",
